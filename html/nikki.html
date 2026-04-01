@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Haxe Neon Auth — Social Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --haxe-magenta:#A0A0A0;
+  --haxe-orange:#A0A0A0;
+  --text:#ffffff;
+  --muted:rgba(255,255,255,0.75);
+  --glass-border:rgba(255,255,255,0.15);
+  --bg:#0a0a0f;
+  --bg-image: url("./menuDesat.png");
+  --bg-overlay: rgba(6,6,10,0.45);
+}
+
+/* Reset */
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Open Sans",sans-serif}
+html,body{height:100%}
+body{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  overflow:hidden;
+  color:var(--text);
+  perspective:1000px;
+}
+
+/* Custom background image with overlay and blur */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background-image: linear-gradient(var(--bg-overlay), var(--bg-overlay)), var(--bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(6px) saturate(1.05);
+  opacity:1;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* blobs */
+.blob{position:fixed;width:600px;height:600px;background:radial-gradient(circle at 30% 30%,var(--haxe-magenta),transparent 60%);filter:blur(120px);opacity:0.35;animation:blobMove 18s infinite alternate ease-in-out;z-index:0}
+.blob2{background:radial-gradient(circle at 70% 70%,var(--haxe-orange),transparent 60%);animation-duration:22s}
+@keyframes blobMove{0%{transform:translate(-20%,-10%) scale(1)}100%{transform:translate(20%,10%) scale(1.3)}}
+
+/* particles */
+.particles{position:fixed;inset:0;overflow:hidden;z-index:1;pointer-events:none}
+.particle{position:absolute;border-radius:50%;filter:blur(2px);animation:floatUp linear infinite}
+@keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:0.2}50%{opacity:1}100%{transform:translateY(-120vh) scale(1.4);opacity:0}}
+
+/* auth outer wrapper for parallax */
+.auth-outer{width:420px;height:520px;display:flex;align-items:center;justify-content:center;z-index:3;transform-style:preserve-3d;transition:transform .12s linear}
+
+/* glass card */
+.auth-container{
+  width:420px;height:520px;overflow:hidden;border-radius:20px;
+  background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);
+  backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);
+  box-shadow:0 0 25px rgba(139, 139, 139, 0.35),0 0 45px rgba(146, 146, 146, 0.25),0 10px 40px rgba(0,0,0,0.6);
+  transition:transform .45s cubic-bezier(.25,.46,.45,1),box-shadow .45s cubic-bezier(.25,.46,.45,1);
+}
+.auth-container:hover{transform:translateY(-10px) scale(1.02);box-shadow:0 0 35px rgba(110, 110, 110, 0.55),0 0 65px rgba(134, 134, 134, 0.45),0 18px 55px rgba(0,0,0,0.75)}
+
+/* slider */
+.slider{display:flex;width:200%;height:100%;transition:transform .6s cubic-bezier(.25,.8,.25,1)}
+.auth-container.register-active .slider{transform:translateX(-50%)}
+
+/* panels */
+.panel{width:50%;padding:32px 36px}
+h2{text-align:center;font-size:1.9rem;margin-bottom:18px;font-weight:700;text-shadow:0 0 12px rgba(255,255,255,0.4)}
+form{display:flex;flex-direction:column;gap:16px}
+
+/* social buttons group */
+.social-row{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin-bottom:6px;
+}
+.social-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.02);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:700;
+  font-size:0.95rem;
+  transition:transform .14s ease, box-shadow .14s ease, background .14s ease;
+  min-width:150px;
+  justify-content:center;
+}
+.social-btn svg{width:18px;height:18px;flex:0 0 18px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45));}
+
+/* provider styles */
+.social-btn.github{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.08);
+}
+.social-btn.github:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,0.6);}
+
+.social-btn.google{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.08);
+}
+.social-btn.google:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,0.6);}
+
+/* inputs */
+.input-field{position:relative;padding:14px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);transition:border-color .25s ease,box-shadow .25s ease,transform .15s ease}
+.input-field:focus-within{border-color:var(--haxe-magenta);box-shadow:0 0 14px rgba(164, 164, 164, 0.35);transform:translateY(-2px)}
+.input-field input{width:100%;background:transparent;border:0;outline:0;color:var(--text);font-size:1rem;padding:6px 0}
+.input-field label{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;transition:all .22s ease;font-size:1rem}
+.input-field input:focus ~ label,
+.input-field input:not(:placeholder-shown) ~ label{top:6px;transform:none;font-size:0.75rem;color:var(--haxe-magenta);background:rgba(0,0,0,0.35);padding:0 6px;border-radius:6px}
+
+/* buttons & links */
+button{margin-top:6px;padding:12px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--haxe-magenta),var(--haxe-orange));color:#000;font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,0.45);transition:transform .18s ease,box-shadow .18s ease}
+button:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,0.55)}
+.switch{text-align:center;margin-top:8px;color:var(--muted)}
+.switch a{color:var(--haxe-magenta);font-weight:700;cursor:pointer;text-decoration:none}
+.switch a:focus{outline:2px solid rgba(19, 178, 165, 0.25);outline-offset:3px}
+
+/* small screens */
+@media (max-width:460px){
+  .auth-outer,.auth-container{width:92%;height:auto}
+  .panel{width:100%;padding:20px}
+  .social-row{flex-direction:column;gap:10px}
+  .social-btn{min-width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- blobs -->
+<div class="blob" aria-hidden="true"></div>
+<div class="blob blob2" aria-hidden="true"></div>
+
+<!-- particles -->
+<div class="particles" aria-hidden="true">
+  <script>
+    for (let i = 0; i < 24; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = 3 + Math.random() * 10;
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = 100 + Math.random() * 40 + '%';
+      p.style.background = `rgba(255,255,255,${0.2 + Math.random() * 0.8})`;
+      p.style.animationDuration = (10 + Math.random() * 22) + 's';
+      p.style.animationDelay = (Math.random() * 6) + 's';
+      document.currentScript.parentElement.appendChild(p);
+    }
+  </script>
+</div>
+
+<!-- auth (outer wrapper for parallax rotation) -->
+<div class="auth-outer" id="authOuter">
+  <div class="auth-container" id="auth">
+
+    <div class="slider" id="slider">
+
+      <!-- LOGIN PANEL -->
+      <div class="panel" aria-labelledby="loginHeading">
+        <h2 id="loginHeading">Login</h2>
+
+        <!-- Social login row -->
+        <div class="social-row" role="group" aria-label="Social login options">
+          <button class="social-btn github" id="githubLogin" aria-label="Sign in with GitHub" type="button">
+            <!-- GitHub SVG -->
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.95 3.2 9.15 7.64 10.63.56.1.76-.24.76-.53 0-.26-.01-1.12-.02-2.03-3.11.68-3.77-1.5-3.77-1.5-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 .17 1.57.98 1.57.98.99 1.7 2.6 1.21 3.24.93.1-.73.39-1.21.71-1.49-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.16-3-.12-.28-.5-1.4.11-2.92 0 0 .95-.3 3.12 1.15a10.8 10.8 0 0 1 2.84-.38c.96.01 1.93.13 2.84.38 2.17-1.45 3.12-1.15 3.12-1.15.61 1.52.23 2.64.11 2.92.72.78 1.16 1.78 1.16 3 0 4.29-2.62 5.24-5.11 5.52.4.35.75 1.04.75 2.1 0 1.52-.01 2.75-.01 3.12 0 .29.2.64.77.53C19.05 20.9 22.25 16.7 22.25 11.75 22.25 5.48 17.27.5 12 .5z"/>
+            </svg>
+            GitHub
+          </button>
+
+          <button class="social-btn google" id="googleLogin" aria-label="Sign in with Google" type="button">
+            <!-- Google SVG -->
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="#EA4335" d="M12 11.5v2.9h4.3c-.2 1.2-.9 2.2-1.9 2.9l3 2.3C19.8 19 21 16.6 21 13.9 21 12.9 20.9 12 20.7 11.2H12z"/>
+              <path fill="#34A853" d="M6.6 14.4c-.4-1.1-.4-2.3 0-3.4L3.6 8.7C2.5 10.6 2 12.7 2 14.9c0 2.2.5 4.3 1.6 6.2l3-2.7z"/>
+              <path fill="#4A90E2" d="M12 6.5c1.3 0 2.5.5 3.4 1.4l2.6-2.6C16.9 3.6 14.6 2.5 12 2.5 8.9 2.5 6.2 4 4.6 6.6l3 2.7C8.1 8 9.9 6.5 12 6.5z"/>
+              <path fill="#FBBC05" d="M20.7 11.2H12v3.3h5.6c-.2 1.1-.9 2-1.9 2.7l3 2.3C21.9 18.9 23 16.6 23 13.9c0-.9-.1-1.7-.3-2.7z"/>
+            </svg>
+            Google
+          </button>
+        </div>
+
+        <form onsubmit="event.preventDefault(); /* handle login here */">
+          <div class="input-field">
+            <input type="email" required placeholder=" " autocomplete="email" />
+            <label>Email</label>
+          </div>
+
+          <div class="input-field">
+            <input type="password" required placeholder=" " autocomplete="current-password" />
+            <label>Password</label>
+          </div>
+
+          <button type="submit">Log In</button>
+
+          <div class="switch">
+            <p>Don't have an account? <a id="toRegister" href="#" role="button">Register</a></p>
+          </div>
+        </form>
+      </div>
+
+      <!-- REGISTER PANEL -->
+      <div class="panel" aria-labelledby="registerHeading">
+        <h2 id="registerHeading">Create Account</h2>
+
+        <!-- Social signup row (same providers) -->
+        <div class="social-row" role="group" aria-label="Social signup options">
+          <button class="social-btn github" id="githubSignup" aria-label="Sign up with GitHub" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M12 .5C5.73.5.75 5.48.75 11.75c0 4.95 3.2 9.15 7.64 10.63.56.1.76-.24.76-.53 0-.26-.01-1.12-.02-2.03-3.11.68-3.77-1.5-3.77-1.5-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 .17 1.57.98 1.57.98.99 1.7 2.6 1.21 3.24.93.1-.73.39-1.21.71-1.49-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.16-3-.12-.28-.5-1.4.11-2.92 0 0 .95-.3 3.12 1.15a10.8 10.8 0 0 1 2.84-.38c.96.01 1.93.13 2.84.38 2.17-1.45 3.12-1.15 3.12-1.15.61 1.52.23 2.64.11 2.92.72.78 1.16 1.78 1.16 3 0 4.29-2.62 5.24-5.11 5.52.4.35.75 1.04.75 2.1 0 1.52-.01 2.75-.01 3.12 0 .29.2.64.77.53C19.05 20.9 22.25 16.7 22.25 11.75 22.25 5.48 17.27.5 12 .5z"/>
+            </svg>
+            GitHub
+          </button>
+
+          <button class="social-btn google" id="googleSignup" aria-label="Sign up with Google" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="#EA4335" d="M12 11.5v2.9h4.3c-.2 1.2-.9 2.2-1.9 2.9l3 2.3C19.8 19 21 16.6 21 13.9 21 12.9 20.9 12 20.7 11.2H12z"/>
+              <path fill="#34A853" d="M6.6 14.4c-.4-1.1-.4-2.3 0-3.4L3.6 8.7C2.5 10.6 2 12.7 2 14.9c0 2.2.5 4.3 1.6 6.2l3-2.7z"/>
+              <path fill="#4A90E2" d="M12 6.5c1.3 0 2.5.5 3.4 1.4l2.6-2.6C16.9 3.6 14.6 2.5 12 2.5 8.9 2.5 6.2 4 4.6 6.6l3 2.7C8.1 8 9.9 6.5 12 6.5z"/>
+              <path fill="#FBBC05" d="M20.7 11.2H12v3.3h5.6c-.2 1.1-.9 2-1.9 2.7l3 2.3C21.9 18.9 23 16.6 23 13.9c0-.9-.1-1.7-.3-2.7z"/>
+            </svg>
+            Google
+          </button>
+        </div>
+
+        <form onsubmit="event.preventDefault(); /* handle register here */">
+          <div class="input-field">
+            <input type="text" required placeholder=" " autocomplete="username" />
+            <label>Username</label>
+          </div>
+
+          <div class="input-field">
+            <input type="email" required placeholder=" " autocomplete="email" />
+            <label>Email</label>
+          </div>
+
+          <div class="input-field">
+            <input type="password" required placeholder=" " autocomplete="new-password" />
+            <label>Password</label>
+          </div>
+
+          <button type="submit">Register</button>
+
+          <div class="switch">
+            <p>Already have an account? <a id="toLogin" href="#" role="button">Login</a></p>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const auth = document.getElementById('auth');
+  const authOuter = document.getElementById('authOuter');
+  const toRegister = document.getElementById('toRegister');
+  const toLogin = document.getElementById('toLogin');
+
+  toRegister.addEventListener('click', (e) => {
+    e.preventDefault();
+    auth.classList.add('register-active');
+    setTimeout(() => {
+      const first = auth.querySelector('.panel:nth-child(2) input');
+      if (first) first.focus();
+    }, 420);
+  });
+
+  toLogin.addEventListener('click', (e) => {
+    e.preventDefault();
+    auth.classList.remove('register-active');
+    setTimeout(() => {
+      const first = auth.querySelector('.panel:nth-child(1) input');
+      if (first) first.focus();
+    }, 420);
+  });
+
+  // Parallax: rotate the outer wrapper (keeps slider transform intact)
+  document.addEventListener('mousemove', (e) => {
+    const x = (window.innerWidth / 2 - e.clientX) / 40;
+    const y = (window.innerHeight / 2 - e.clientY) / 40;
+    authOuter.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+  });
+
+  document.addEventListener('mouseleave', () => {
+    authOuter.style.transform = '';
+  });
+
+  // Social button handlers: replace the hrefs with your OAuth endpoints
+  const openOAuth = (provider) => {
+    // Example placeholders — replace with your real OAuth endpoints
+    const endpoints = {
+      githubLogin: '/auth/github?mode=login',
+      googleLogin: '/auth/google?mode=login',
+      githubSignup: '/auth/github?mode=signup',
+      googleSignup: '/auth/google?mode=signup'
+    };
+    const url = endpoints[provider];
+    if (url) {
+      // open in same tab to start OAuth flow; change to window.open(url, '_blank') if desired
+      window.location.href = url;
+    } else {
+      console.warn('OAuth endpoint not configured for', provider);
+    }
+  };
+
+  document.getElementById('githubLogin').addEventListener('click', () => openOAuth('githubLogin'));
+  document.getElementById('googleLogin').addEventListener('click', () => openOAuth('googleLogin'));
+  document.getElementById('githubSignup').addEventListener('click', () => openOAuth('githubSignup'));
+  document.getElementById('googleSignup').addEventListener('click', () => openOAuth('googleSignup'));
+
+  // Keyboard accessibility for the links
+  [toRegister, toLogin].forEach(el => {
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>
